@@ -1,0 +1,186 @@
+<details open>
+      <summary>2) Portfolio & Contributions (pre‑retirement)</summary>
+      <div class="card-c">
+        <div class="row">
+          <div><label>Current investable portfolio</label><input id="currentPortfolio" type="number" step="1000" value="3000000"></div>
+          <div><label>Annual contribution (today’s ₹)</label><input id="annualContribution" type="number" step="1000" value="600000"></div>
+        </div>
+        <div class="row">
+          <div><label>Annual raise on contributions (real %, optional)</label><input id="contribRaise" type="number" step="0.1" value="0"></div>
+          <div><label>Annual fee drag (ER, %, all-in)</label><input id="feeDrag" type="number" step="0.05" value="0.3"></div>
+        </div>
+        <div class="row">
+          <div><label>Annual tax drag on returns (%)*</label><input id="taxDrag" type="number" step="0.1" value="0.5"></div>
+          <div><label class="muted">*Approximate effective % of returns lost to taxes yearly.</label></div>
+        </div>
+        <div class="help">Contributions are added at year‑end in “real” terms. Fee & tax drags are applied before inflation conversion.</div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>3) Expected Returns & Risk</summary>
+      <div class="card-c">
+        <div class="row">
+          <div><label>Accumulation: expected <b>nominal</b> return (%/yr)</label><input id="muAcc" type="number" step="0.1" value="12"></div>
+          <div><label>Accumulation: volatility (stdev, %/yr)</label><input id="volAcc" type="number" step="0.1" value="18"></div>
+        </div>
+        <div class="row">
+          <div><label>Retirement: expected <b>nominal</b> return (%/yr)</label><input id="muRet" type="number" step="0.1" value="10"></div>
+          <div><label>Retirement: volatility (stdev, %/yr)</label><input id="volRet" type="number" step="0.1" value="15"></div>
+        </div>
+        <div class="row">
+          <div><label>Return floor per year (% min, to curb extremes)</label><input id="retFloor" type="number" step="0.1" value="-60"></div>
+          <div><label>Number of Monte Carlo paths</label><input id="nsims" type="number" step="100" value="2000"></div>
+        </div>
+        <div class="row">
+          <div><label>Random seed (optional for reproducibility)</label><input id="seed" type="number" step="1" placeholder="e.g., 12345"></div>
+          <div class="inline" style="margin-top:24px"><input id="coupleCorr" type="checkbox"><label for="coupleCorr">Use same random shocks pre‑ and post‑retirement (simple path continuity)</label></div>
+        </div>
+        <div class="hint">Nominal returns are converted to “real” inside the model using CPI and your fee/tax drags.</div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>4) Spending Plan (today’s currency)</summary>
+      <div class="card-c">
+        <div class="row">
+          <div><label>Baseline annual living expenses in retirement</label><input id="retireExpenses" type="number" step="1000" value="1200000"></div>
+          <div><label>Essential spending fraction (%)</label><input id="essentialFrac" type="number" step="1" value="60"></div>
+        </div>
+        <div class="help">All spending is entered in today’s rupees. The engine treats baseline spending as “real” (inflation‑indexed). You can add one‑off expenses below.</div>
+        <div class="section">
+          <div class="inline" style="justify-content:space-between">
+            <div class="muted">One‑off flows (expenses as +, windfalls as −). Ages are your age at the time of the flow.</div>
+            <button class="btn btn-ghost" onclick="addFlow()">+ Add flow</button>
+          </div>
+          <div class="hr"></div>
+          <table id="flowsTable">
+            <thead><tr><th>Label</th><th>Age</th><th>Amount (today)</th><th>Indexed to CPI?</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>5) Retirement Incomes</summary>
+      <div class="card-c">
+        <div class="inline" style="justify-content:space-between">
+          <div class="muted">Add pensions, rentals, annuities, part‑time income, etc. (positive amounts).</div>
+          <button class="btn btn-ghost" onclick="addIncome()">+ Add income</button>
+        </div>
+        <div class="hr"></div>
+        <table id="incomesTable">
+          <thead><tr><th>Label</th><th>Start age</th><th>End age</th><th>Annual amount (today)</th><th>Indexed to CPI?</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details open>
+      <summary>6) Withdrawal Policy</summary>
+      <div class="card-c">
+        <div class="row">
+          <div>
+            <label>Policy</label>
+            <select id="policy">
+              <option value="fixed">Fixed real spending (inflation‑indexed)</option>
+              <option value="guardrails">Guardrails (Guyton‑Klinger‑style)</option>
+            </select>
+          </div>
+          <div class="inline" style="gap:10px; margin-top:26px">
+            <span class="muted">For guardrails:</span>
+            <span class="tag">Bandwidth ±<input id="grWidth" type="number" step="1" value="20" style="width:60px">%</span>
+            <span class="tag">Adjustment step <input id="grStep" type="number" step="1" value="10" style="width:60px">%</span>
+          </div>
+        </div>
+        <div class="help">“Guardrails” raises or trims spending when your withdrawal rate drifts outside ±bandwidth around the starting withdrawal rate (based on net withdrawals after other incomes). Adjust by the step % to steer back.</div>
+      </div>
+    </details>
+
+    <div class="sticky-actions">
+      <button class="btn btn-good" onclick="runAll()">▶ Run Monte Carlo</button>
+      <button class="btn" onclick="saveConfig()">Save</button>
+      <button class="btn btn-ghost" onclick="loadConfig()">Load</button>
+      <button class="btn btn-danger" onclick="resetConfig()">Reset</button>
+      <button class="btn btn-ghost" onclick="exportConfig()">Export JSON</button>
+      <button class="btn btn-ghost" onclick="importConfig()">Import JSON</button>
+    </div>
+  </div>
+  <div class="foot small">Privacy: everything runs locally in your browser. No data is uploaded.</div>
+</section>
+
+<!-- RIGHT: RESULTS -->
+<section class="right">
+  <div class="card">
+    <div class="card-h">
+      <div>Plan Summary</div>
+      <div class="small muted" id="status">Ready.</div>
+    </div>
+    <div class="card-c">
+      <div class="kpi">
+        <div class="stat">
+          <div class="k">Required nest egg at retirement (for target success)</div>
+          <div class="v" id="reqNest">—</div>
+          <div class="small muted">Computed via Monte Carlo bisection using your policy and cash‑flows.</div>
+        </div>
+        <div class="stat">
+          <div class="k">Implied safe starting withdrawal rate</div>
+          <div class="v" id="swr">—</div>
+          <div class="small muted">= (Year‑0 net withdrawals) ÷ required nest egg.</div>
+        </div>
+        <div class="stat">
+          <div class="k">Are you Coast FI today?</div>
+          <div class="v" id="coastFI">—</div>
+          <div class="small muted" id="coastDetail"></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot small">All results are in today’s currency (real terms).</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">Monte Carlo Results</div>
+    <div class="card-c">
+      <div class="flex">
+        <div class="stat" style="min-width:220px">
+          <div class="k">Success probability if retiring at planned age</div>
+          <div class="v" id="planSuccess">—</div>
+          <div class="small muted">Simulates accumulation + retirement under your assumptions.</div>
+        </div>
+        <div class="stat" style="min-width:220px">
+          <div class="k">Retire‑today success probability</div>
+          <div class="v" id="nowSuccess">—</div>
+          <div class="small muted">What if you stopped work now with current portfolio?</div>
+        </div>
+        <div class="stat" style="min-width:220px">
+          <div class="k">Retirement pot at start (percentiles)</div>
+          <div class="v" id="potPct">—</div>
+          <div class="small muted">10th / 50th / 90th percentiles.</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="row">
+          <div class="stat">
+            <div class="k">Earliest FI age (when pot can coast to nest egg)</div>
+            <div class="v" id="fiAges">—</div>
+            <div class="small muted">10th / median / 90th across paths.</div>
+          </div>
+          <div class="stat">
+            <div class="k">Years until planned retirement</div>
+            <div class="v" id="yrsToRet">—</div>
+            <div class="small muted">For reference.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot small">Caution: estimates only, not financial advice.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">Assumption Check</div>
+    <div class="card-c small">
+      <div id="assumptionEcho" class="mono"></div>
+    </div>
+  </div>
+</section>
